@@ -9,6 +9,14 @@
       "DOM",
       "DOM.Iterable"
     ],
+    {
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "removeComments": false,
+    "declaration": false
+  }
+}
     "skipLibCheck": true,
     "moduleResolution": "bundler",
     "isolatedModules": true,
