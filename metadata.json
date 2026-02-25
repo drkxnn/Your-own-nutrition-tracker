@@ -1,0 +1,5 @@
+{
+  "name": "Nutrition Tracker",
+  "description": "A manual daily nutrition tracking PWA with custom nutrients and local storage.",
+  "requestFramePermissions": []
+}
