@@ -1,49 +1,10 @@
 import './index.css';
 
-// --- Types ---
-type NutrientDict = Record<string, number>;
-type CustomNutrientDict = Record<string, { value: number; unit: string }>;
-
-interface Entry {
-  id: string;
-  title: string;
-  amount: number;
-  notes: string;
-  nutrients: NutrientDict;
-  customNutrients: CustomNutrientDict;
-}
-
-interface Template {
-  id: string;
-  title: string;
-  nutrients: NutrientDict;
-  customNutrients: CustomNutrientDict;
-}
-
-interface CustomNutrientDef {
-  name: string;
-  unit: string;
-}
-
-interface AppState {
-  currentDate: string;
-  entries: Record<string, Entry[]>;
-  targets: {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-  };
-  templates: Template[];
-  customNutrientDefs: CustomNutrientDef[];
-  view: 'daily' | 'weekly' | 'templates' | 'settings';
-}
-
 // --- Constants ---
 const MAIN_NUTRIENTS = ['calories', 'protein', 'carbs', 'fat'];
 const ADDITIONAL_NUTRIENTS = ['sugar', 'fiber', 'saturatedFat', 'salt'];
 
-const NUTRIENT_LABELS: Record<string, string> = {
+const NUTRIENT_LABELS = {
   calories: 'Calories (kcal)',
   protein: 'Protein (g)',
   carbs: 'Carbs (g)',
@@ -59,7 +20,7 @@ function generateId() {
   return Math.random().toString(36).substring(2, 9);
 }
 
-function loadState(): AppState {
+function loadState() {
   const saved = localStorage.getItem('nutrition_app_state');
   if (saved) {
     try {
@@ -83,18 +44,18 @@ function loadState(): AppState {
   };
 }
 
-let state: AppState = loadState();
+let state = loadState();
 
 function saveState() {
   localStorage.setItem('nutrition_app_state', JSON.stringify(state));
 }
 
 // --- DOM Elements ---
-const mainView = document.getElementById('main-view')!;
-const stickySummary = document.getElementById('sticky-summary')!;
-const addEntryModal = document.getElementById('add-entry-modal')!;
+const mainView = document.getElementById('main-view');
+const stickySummary = document.getElementById('sticky-summary');
+const addEntryModal = document.getElementById('add-entry-modal');
 
-let editingEntryId: string | null = null;
+let editingEntryId = null;
 
 // --- Rendering ---
 function updateUI() {
@@ -157,13 +118,13 @@ function renderTabs() {
   `;
 }
 
-function calculateEntryTotals(entry: Entry) {
+function calculateEntryTotals(entry) {
   const factor = entry.amount / 100;
-  const totals: NutrientDict = {};
+  const totals = {};
   [...MAIN_NUTRIENTS, ...ADDITIONAL_NUTRIENTS].forEach(nut => {
     totals[nut] = (entry.nutrients[nut] || 0) * factor;
   });
-  const customTotals: CustomNutrientDict = {};
+  const customTotals = {};
   state.customNutrientDefs.forEach(def => {
     customTotals[def.name] = {
       value: (entry.customNutrients[def.name]?.value || 0) * factor,
@@ -173,10 +134,10 @@ function calculateEntryTotals(entry: Entry) {
   return { totals, customTotals };
 }
 
-function calculateDailyTotals(date: string) {
+function calculateDailyTotals(date) {
   const entries = state.entries[date] || [];
-  const totals: NutrientDict = {};
-  const customTotals: CustomNutrientDict = {};
+  const totals = {};
+  const customTotals = {};
   
   [...MAIN_NUTRIENTS, ...ADDITIONAL_NUTRIENTS].forEach(nut => totals[nut] = 0);
   state.customNutrientDefs.forEach(def => customTotals[def.name] = { value: 0, unit: def.unit });
@@ -254,7 +215,7 @@ function renderDaily() {
 function renderStickySummary() {
   const { totals, customTotals } = calculateDailyTotals(state.currentDate);
   
-  const renderBar = (label: string, current: number, target: number, colorClass: string) => {
+  const renderBar = (label, current, target, colorClass) => {
     const percent = Math.min(100, target > 0 ? (current / target) * 100 : 0);
     return `
       <div class="flex-1">
@@ -439,7 +400,7 @@ function renderSettings() {
 }
 
 // --- Add Entry Modal ---
-function openAddEntryModal(entryId?: string) {
+function openAddEntryModal(entryId) {
   editingEntryId = entryId || null;
   const entry = entryId ? state.entries[state.currentDate]?.find(e => e.id === entryId) : null;
   
@@ -527,16 +488,16 @@ function openAddEntryModal(entryId?: string) {
   addEntryModal.classList.remove('hidden');
   addEntryModal.classList.add('flex');
   
-  const amountInput = document.getElementById('entry-amount') as HTMLInputElement;
+  const amountInput = document.getElementById('entry-amount');
   const nutInputs = document.querySelectorAll('.nutrient-input, .custom-nutrient-input');
   
   const updatePreview = () => {
     const amount = parseFloat(amountInput.value) || 0;
-    document.getElementById('preview-amount')!.textContent = amount.toString();
+    document.getElementById('preview-amount').textContent = amount.toString();
     
     let previewHtml = '';
     MAIN_NUTRIENTS.forEach(nut => {
-      const val = parseFloat((document.getElementById(`nut-${nut}`) as HTMLInputElement).value) || 0;
+      const val = parseFloat(document.getElementById(`nut-${nut}`).value) || 0;
       const calc = (amount / 100) * val;
       previewHtml += `
         <div class="flex flex-col">
@@ -545,28 +506,28 @@ function openAddEntryModal(entryId?: string) {
         </div>
       `;
     });
-    document.getElementById('preview-nutrients')!.innerHTML = previewHtml;
+    document.getElementById('preview-nutrients').innerHTML = previewHtml;
   };
 
   amountInput.addEventListener('input', updatePreview);
   nutInputs.forEach(input => input.addEventListener('input', updatePreview));
   
-  const templateSelect = document.getElementById('template-select') as HTMLSelectElement;
+  const templateSelect = document.getElementById('template-select');
   if (templateSelect) {
     templateSelect.addEventListener('change', (e) => {
-      const tId = (e.target as HTMLSelectElement).value;
+      const tId = e.target.value;
       if (tId) {
         const t = state.templates.find(x => x.id === tId);
         if (t) {
-          (document.getElementById('entry-title') as HTMLInputElement).value = t.title;
+          document.getElementById('entry-title').value = t.title;
           MAIN_NUTRIENTS.forEach(nut => {
-            (document.getElementById(`nut-${nut}`) as HTMLInputElement).value = t.nutrients[nut]?.toString() || '';
+            document.getElementById(`nut-${nut}`).value = t.nutrients[nut]?.toString() || '';
           });
           ADDITIONAL_NUTRIENTS.forEach(nut => {
-            (document.getElementById(`nut-${nut}`) as HTMLInputElement).value = t.nutrients[nut]?.toString() || '';
+            document.getElementById(`nut-${nut}`).value = t.nutrients[nut]?.toString() || '';
           });
           state.customNutrientDefs.forEach(def => {
-            (document.getElementById(`custom-nut-${def.name}`) as HTMLInputElement).value = t.customNutrients[def.name]?.value?.toString() || '';
+            document.getElementById(`custom-nut-${def.name}`).value = t.customNutrients[def.name]?.value?.toString() || '';
           });
           updatePreview();
         }
@@ -583,31 +544,31 @@ function closeAddEntryModal() {
 }
 
 function saveEntry() {
-  const title = (document.getElementById('entry-title') as HTMLInputElement).value.trim();
-  const amount = parseFloat((document.getElementById('entry-amount') as HTMLInputElement).value);
-  const notes = (document.getElementById('entry-notes') as HTMLInputElement).value.trim();
+  const title = document.getElementById('entry-title').value.trim();
+  const amount = parseFloat(document.getElementById('entry-amount').value);
+  const notes = document.getElementById('entry-notes').value.trim();
   
   if (!title || isNaN(amount) || amount <= 0) {
     alert('Please enter a valid title and amount.');
     return;
   }
 
-  const nutrients: NutrientDict = {};
+  const nutrients = {};
   [...MAIN_NUTRIENTS, ...ADDITIONAL_NUTRIENTS].forEach(nut => {
-    const val = parseFloat((document.getElementById(`nut-${nut}`) as HTMLInputElement).value);
+    const val = parseFloat(document.getElementById(`nut-${nut}`).value);
     nutrients[nut] = isNaN(val) ? 0 : val;
   });
 
-  const customNutrients: CustomNutrientDict = {};
+  const customNutrients = {};
   state.customNutrientDefs.forEach(def => {
-    const val = parseFloat((document.getElementById(`custom-nut-${def.name}`) as HTMLInputElement).value);
+    const val = parseFloat(document.getElementById(`custom-nut-${def.name}`).value);
     customNutrients[def.name] = {
       value: isNaN(val) ? 0 : val,
       unit: def.unit
     };
   });
 
-  const entry: Entry = {
+  const entry = {
     id: editingEntryId || generateId(),
     title,
     amount,
@@ -629,7 +590,7 @@ function saveEntry() {
     state.entries[state.currentDate].push(entry);
   }
 
-  const saveAsTemplate = (document.getElementById('save-as-template') as HTMLInputElement)?.checked;
+  const saveAsTemplate = document.getElementById('save-as-template')?.checked;
   if (saveAsTemplate) {
     state.templates.push({
       id: generateId(),
@@ -646,7 +607,7 @@ function saveEntry() {
 
 // --- Event Delegation ---
 document.addEventListener('click', (e) => {
-  const target = e.target as HTMLElement;
+  const target = e.target;
   const actionBtn = target.closest('[data-action]');
   
   if (!actionBtn) return;
@@ -671,7 +632,7 @@ document.addEventListener('click', (e) => {
       break;
     }
     case 'set-view': {
-      state.view = actionBtn.getAttribute('data-view') as any;
+      state.view = actionBtn.getAttribute('data-view');
       saveState();
       updateUI();
       break;
@@ -681,13 +642,13 @@ document.addEventListener('click', (e) => {
       break;
     }
     case 'edit-entry': {
-      const id = actionBtn.getAttribute('data-id')!;
+      const id = actionBtn.getAttribute('data-id');
       openAddEntryModal(id);
       break;
     }
     case 'delete-entry': {
       if (confirm('Delete this entry?')) {
-        const id = actionBtn.getAttribute('data-id')!;
+        const id = actionBtn.getAttribute('data-id');
         state.entries[state.currentDate] = state.entries[state.currentDate].filter(e => e.id !== id);
         saveState();
         updateUI();
@@ -720,7 +681,7 @@ document.addEventListener('click', (e) => {
     }
     case 'delete-template': {
       if (confirm('Delete template?')) {
-        const id = actionBtn.getAttribute('data-id')!;
+        const id = actionBtn.getAttribute('data-id');
         state.templates = state.templates.filter(t => t.id !== id);
         saveState();
         updateUI();
@@ -737,7 +698,7 @@ document.addEventListener('click', (e) => {
       break;
     }
     case 'delete-custom-nutrient': {
-      const name = actionBtn.getAttribute('data-name')!;
+      const name = actionBtn.getAttribute('data-name');
       if (confirm(`Delete custom nutrient ${name}?`)) {
         state.customNutrientDefs = state.customNutrientDefs.filter(d => d.name !== name);
         saveState();
@@ -780,12 +741,12 @@ document.addEventListener('click', (e) => {
       input.type = 'file';
       input.accept = '.json';
       input.onchange = e => {
-        const file = (e.target as HTMLInputElement).files?.[0];
+        const file = e.target.files?.[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = readerEvent => {
           try {
-            const content = readerEvent.target?.result as string;
+            const content = readerEvent.target?.result;
             const parsed = JSON.parse(content);
             if (parsed && parsed.entries) {
               state = parsed;
@@ -803,10 +764,10 @@ document.addEventListener('click', (e) => {
       break;
     }
     case 'save-targets': {
-      const cals = parseFloat((document.getElementById('target-calories') as HTMLInputElement).value);
-      const pro = parseFloat((document.getElementById('target-protein') as HTMLInputElement).value);
-      const car = parseFloat((document.getElementById('target-carbs') as HTMLInputElement).value);
-      const fat = parseFloat((document.getElementById('target-fat') as HTMLInputElement).value);
+      const cals = parseFloat(document.getElementById('target-calories').value);
+      const pro = parseFloat(document.getElementById('target-protein').value);
+      const car = parseFloat(document.getElementById('target-carbs').value);
+      const fat = parseFloat(document.getElementById('target-fat').value);
       if (!isNaN(cals)) state.targets.calories = cals;
       if (!isNaN(pro)) state.targets.protein = pro;
       if (!isNaN(car)) state.targets.carbs = car;
